@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduAdventure Adaptive Gamification</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght@500;700&display=swap');
+
+:root{
+    --ipa:#2ecc71;
+    --ips:#f39c12;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:'Quicksand',sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+    background:linear-gradient(135deg,#74ebd5,#9face6);
+}
+
+/* BACKGROUND */
+.bubble{
+    position:absolute;
+    bottom:-100px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.3);
+    animation:float 10s infinite ease-in;
+    z-index:-1;
+}
+
+@keyframes float{
+    0%{
+        transform:translateY(0) rotate(0deg);
+        opacity:1;
+    }
+    100%{
+        transform:translateY(-120vh) rotate(360deg);
+        opacity:0;
+    }
+}
+
+/* CARD */
+#game-card{
+    width:90%;
+    max-width:500px;
+    background:rgba(255,255,255,0.92);
+    backdrop-filter:blur(12px);
+    padding:40px;
+    border-radius:35px;
+    text-align:center;
+    box-shadow:0 25px 50px rgba(0,0,0,0.25);
+    border:4px solid white;
+    animation:fadeIn .6s ease;
+}
+
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:scale(.9);
+    }
+    to{
+        opacity:1;
+        transform:scale(1);
+    }
+}
+
+h1{
+    font-family:'Fredoka One',cursive;
+    color:#2f3542;
+    font-size:34px;
+    margin-bottom:25px;
+}
+
+/* BUTTON */
+.category-btn{
+    width:100%;
+    border:none;
+    padding:20px;
+    margin:15px 0;
+    border-radius:25px;
+    font-size:22px;
+    color:white;
+    cursor:pointer;
+    font-family:'Fredoka One',cursive;
+    transition:.3s;
+    box-shadow:0 10px 0 rgba(0,0,0,0.15);
+}
+
+.ipa-btn{
+    background:var(--ipa);
+    border-bottom:8px solid #27ae60;
+}
+
+.ips-btn{
+    background:var(--ips);
+    border-bottom:8px solid #d35400;
+}
+
+.category-btn:hover{
+    transform:translateY(-5px) scale(1.04);
+}
+
+.category-btn:active{
+    transform:translateY(3px);
+}
+
+/* SCORE */
+#score-tag{
+    background:#2f3542;
+    color:#f1c40f;
+    display:inline-block;
+    padding:10px 25px;
+    border-radius:50px;
+    font-weight:bold;
+    margin-bottom:20px;
+}
+
+/* QUESTION */
+#question-box{
+    font-size:1.4rem;
+    font-weight:bold;
+    color:#2f3542;
+    margin:25px 0;
+    min-height:80px;
+}
+
+/* OPTIONS */
+.option{
+    width:100%;
+    padding:18px;
+    margin:10px 0;
+    border-radius:18px;
+    border:3px solid #f1f2f6;
+    background:white;
+    cursor:pointer;
+    font-size:1.05rem;
+    font-weight:bold;
+    transition:.2s;
+}
+
+.option:hover{
+    background:#f1f2f6;
+    transform:translateX(8px);
+    border-color:#3498db;
+}
+
+#feedback-msg{
+    font-family:'Fredoka One',cursive;
+    font-size:1.3rem;
+    min-height:50px;
+    margin-top:20px;
+}
+
+#adaptive-box{
+    margin-top:10px;
+    color:#555;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<!-- MUSIC AUTO PLAY -->
+<audio id="bgMusic" autoplay loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=kids-happy-fun-11254.mp3" type="audio/mpeg">
+</audio>
+
+<div id="bg-bubbles"></div>
+
+<div id="game-card">
+
+    <!-- MENU -->
+    <div id="main-menu">
+        <h1>🚀KUIS PINTAR</h1>
+
+        <button class="category-btn ipa-btn" onclick="start('IPA')">
+            🌿 DUNIA IPA
+        </button>
+
+        <button class="category-btn ips-btn" onclick="start('IPS')">
+            🌍 DUNIA IPS
+        </button>
+    </div>
+
+    <!-- QUIZ -->
+    <div id="quiz-area" style="display:none;">
+
+        <div id="score-tag">
+            ⭐ SKOR:
+            <span id="val-score">0</span>
+            |
+            🎯 LEVEL:
+            <span id="level-val">1</span>
+        </div>
+
+        <div id="question-box">
+            Memuat soal...
+        </div>
+
+        <div id="options-list"></div>
+
+        <div id="feedback-msg"></div>
+
+        <div id="adaptive-box"></div>
+
+    </div>
+</div>
+
+<script>
+
+/* ======================
+   AUTO PLAY MUSIC
+====================== */
+window.addEventListener('load', () => {
+
+    const music = document.getElementById('bgMusic');
+
+    const playMusic = () => {
+        music.volume = 0.4;
+
+        music.play()
+        .catch(() => {
+
+            document.body.addEventListener('click', () => {
+                music.play();
+            }, { once:true });
+
+        });
+    };
+
+    playMusic();
+});
+
+/* ======================
+   SOUNDS
+====================== */
+const winSfx = new Audio('https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3');
+const loseSfx = new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3');
+const clickSfx = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+
+/* ======================
+   DATABASE
+====================== */
+const db = {
+
+'IPA':[
+
+{q:"Apa pusat tata surya kita?",a:["Bumi","Bulan","Matahari","Bintang"],c:2},
+
+{q:"Bagian paru-paru berfungsi untuk...",a:["Mencerna","Bernapas","Memompa","Berpikir"],c:1},
+
+{q:"Air mendidih pada suhu...",a:["50°C","80°C","100°C","200°C"],c:2},
+
+{q:"Hewan pemakan tumbuhan disebut...",a:["Herbivora","Karnivora","Omnivora","Insektivora"],c:0},
+
+{q:"Planet terdekat dari matahari adalah...",a:["Mars","Merkurius","Venus","Bumi"],c:1}
+
+],
+
+'IPS':[
+
+{q:"Warna bendera Indonesia adalah...",a:["Merah Putih","Merah Hijau","Biru Putih","Kuning Putih"],c:0},
+
+{q:"Indonesia merdeka tahun...",a:["1942","1945","1950","1965"],c:1},
+
+{q:"Ibu kota Indonesia saat ini...",a:["Bandung","Surabaya","Jakarta","Medan"],c:2},
+
+{q:"Presiden RI ke-7 adalah...",a:["SBY","Jokowi","Habibie","Prabowo"],c:1},
+
+{q:"Candi Borobudur berada di...",a:["Jawa Tengah","Jawa Timur","Bali","Papua"],c:0}
+
+]
+
+};
+
+/* ======================
+   VARIABLE
+====================== */
+let score = 0;
+let index = 0;
+let level = 1;
+let streak = 0;
+let activePool = [];
+
+/* ======================
+   START GAME
+====================== */
+function start(mapel){
+
+    clickSfx.play();
+
+    score = 0;
+    index = 0;
+    level = 1;
+    streak = 0;
+
+    activePool = [...db[mapel]]
+    .sort(() => Math.random() - 0.5);
+
+    document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('quiz-area').style.display = 'block';
+
+    show();
+}
+
+/* ======================
+   SHOW QUESTION
+====================== */
+function show(){
+
+    if(index >= activePool.length){
+        return finish();
+    }
+
+    const data = activePool[index];
+
+    document.getElementById('question-box').innerText = data.q;
+
+    document.getElementById('val-score').innerText = score;
+
+    document.getElementById('level-val').innerText = level;
+
+    document.getElementById('feedback-msg').innerHTML = "";
+
+    const list = document.getElementById('options-list');
+
+    list.innerHTML = "";
+
+    data.a.forEach((opt,i)=>{
+
+        const btn = document.createElement('button');
+
+        btn.className = 'option';
+
+        btn.innerText = opt;
+
+        btn.onclick = () => check(i,data.c);
+
+        list.appendChild(btn);
+
+    });
+}
+
+/* ======================
+   CHECK ANSWER
+====================== */
+function check(pick,correct){
+
+    const btns = document.querySelectorAll('.option');
+
+    btns.forEach(btn => btn.onclick = null);
+
+    if(pick === correct){
+
+        winSfx.play();
+
+        score += 10;
+
+        streak++;
+
+        btns[pick].style.background = "#d4efdf";
+
+        btns[pick].style.borderColor = "#2ecc71";
+
+        document.getElementById('feedback-msg').innerHTML =
+        "✨ BENAR! HEBAT!";
+
+        if(streak >= 2){
+
+            level++;
+
+            streak = 0;
+
+            document.getElementById('adaptive-box').innerHTML =
+            "🔥 LEVEL NAIK! SOAL MAKIN MENANTANG!";
+        }
+
+    } else {
+
+        loseSfx.play();
+
+        streak = 0;
+
+        btns[pick].style.background = "#fadbd8";
+
+        btns[pick].style.borderColor = "#e74c3c";
+
+        btns[correct].style.background = "#d4efdf";
+
+        document.getElementById('feedback-msg').innerHTML =
+        "💪 JANGAN MENYERAH!";
+
+        document.getElementById('adaptive-box').innerHTML =
+        "📘 MODE BELAJAR AKTIF";
+    }
+
+    index++;
+
+    setTimeout(show,1800);
+}
+
+/* ======================
+   FINISH
+====================== */
+function finish(){
+
+    document.getElementById('game-card').innerHTML = `
+
+    <h1>🎉 SELESAI!</h1>
+
+    <p style="font-size:26px;font-weight:bold;">
+        Skor Kamu:
+        ${score}/50
+    </p>
+
+    <p style="font-size:20px;">
+        🎯 Level Tercapai:
+        ${level}
+    </p>
+
+    <button class="category-btn ipa-btn"
+    onclick="location.reload()">
+        🔄 MAIN LAGI
+    </button>
+
+    `;
+}
+
+/* ======================
+   BUBBLES
+====================== */
+function createBubbles(){
+
+    const container = document.getElementById('bg-bubbles');
+
+    for(let i=0;i<18;i++){
+
+        const b = document.createElement('div');
+
+        b.className = 'bubble';
+
+        const size = Math.random()*60 + 20 + 'px';
+
+        b.style.width = size;
+        b.style.height = size;
+
+        b.style.left = Math.random()*100 + 'vw';
+
+        b.style.animationDelay =
+        Math.random()*5 + 's';
+
+        container.appendChild(b);
+    }
+}
+
+createBubbles();
+
+</script>
+
+</body>
+</html>
