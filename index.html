@@ -171,11 +171,6 @@ h1{
 
 <body>
 
-<!-- MUSIC AUTO PLAY -->
-<audio id="bgMusic" autoplay loop>
-    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=kids-happy-fun-11254.mp3" type="audio/mpeg">
-</audio>
-
 <div id="bg-bubbles"></div>
 
 <div id="game-card">
@@ -218,29 +213,6 @@ h1{
 </div>
 
 <script>
-
-/* ======================
-   AUTO PLAY MUSIC
-====================== */
-window.addEventListener('load', () => {
-
-    const music = document.getElementById('bgMusic');
-
-    const playMusic = () => {
-        music.volume = 0.4;
-
-        music.play()
-        .catch(() => {
-
-            document.body.addEventListener('click', () => {
-                music.play();
-            }, { once:true });
-
-        });
-    };
-
-    playMusic();
-});
 
 /* ======================
    SOUNDS
